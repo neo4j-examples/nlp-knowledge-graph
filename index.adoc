@@ -1,0 +1,119 @@
+= NLP and Knowledge Graphs
+
+== NLP and Knowledge Graphs
+
+In this guide we will use neosemantics and APOC NLP to create a software knowledge graph.
+
+== neosemantics (n10s)
+
+image::https://s3.amazonaws.com/dev.assets.neo4j.com/wp-content/uploads/n10s-logo.png[float="right", width="300px"]
+
+neosemantics (n10s) is a plugin that enables the use of RDF and its associated vocabularies like (OWL,RDFS,SKOS and others) in Neo4j.
+
+You can use n10s to easily build integrations with RDF-generating / RDF-consuming components. You can also use it to validate your graph against constraints expressed in SHACL or to run basic inferencing.
+
+https://neo4j.com/labs/neosemantics-rdf/[Learn more^, role="medium button"]
+
+== Wikidata SPARQL API
+
+Wikidata is a free and open knowledge base that can be read and edited by both humans and machines.
+It acts as central storage for the structured data of its Wikimedia sister projects including Wikipedia.
+
+image::https://s3.amazonaws.com/dev.assets.neo4j.com/wp-content/uploads/20200812/Screenshot+from+2020-08-12+11-32-46.png[]
+
+https://query.wikidata.org/sparql?query=prefix%20neo%3A%20%3Cneo4j%3A%2F%2Fvoc%23%3E%20%0A%23Cats%0A%23SELECT%20%3Fitem%20%3Flabel%20%0ACONSTRUCT%20%7B%0A%3Fitem%20a%20neo%3ACategory%20%3B%20neo%3AsubCatOf%20%3FparentItem%20.%20%20%0A%20%20%3Fitem%20neo%3Aname%20%3Flabel%20.%0A%20%20%3FparentItem%20a%20neo%3ACategory%3B%20neo%3Aname%20%3FparentLabel%20.%0A%20%20%3Farticle%20a%20neo%3AWikipediaPage%3B%20schema%3Aabout%20%3Fitem%20%3B%0A%20%20%20%20%20%20%20%20%20%20%20%0A%7D%0AWHERE%20%0A%7B%0A%20%20%3Fitem%20wdt%3AP31%2Fwdt%3AP279*%20wd%3AQ2429814%20.%0A%20%20%3Fitem%20wdt%3AP31%7Cwdt%3AP279%20%3FparentItem%20.%0A%20%20%3Fitem%20rdfs%3Alabel%20%3Flabel%20.%0A%20%20filter(lang(%3Flabel)%20%3D%20%22en%22)%0A%20%20%3FparentItem%20rdfs%3Alabel%20%3FparentLabel%20.%0A%20%20filter(lang(%3FparentLabel)%20%3D%20%22en%22)%0A%20%20%0A%20%20OPTIONAL%20%7B%0A%20%20%20%20%20%20%3Farticle%20schema%3Aabout%20%3Fitem%20%3B%0A%20%20%20%20%20%20%20%20%20%20%20%20schema%3AinLanguage%20%22en%22%20%3B%0A%20%20%20%20%20%20%20%20%20%20%20%20schema%3AisPartOf%20%3Chttps%3A%2F%2Fen.wikipedia.org%2F%3E%20.%0A%20%20%20%20%7D%0A%20%20%0A%7D^[Query the API^, role="medium button"]
+
+== Configuring n10s
+
+[source, cypher]
+----
+CALL n10s.graphconfig.init({handleVocabUris: "MAP"});
+
+call n10s.nsprefixes.add('neo','neo4j://voc#');
+CALL n10s.mapping.add("neo4j://voc#subCatOf","SUB_CAT_OF");
+
+call n10s.nsprefixes.add('sch','http://schema.org/');
+CALL n10s.mapping.add("http://schema.org/about","ABOUT");
+----
+
+== Importing Wikidata's Software Taxonomy into Neo4j
+
+[source,cypher]
+----
+CALL n10s.rdf.import.fetch(
+  'https://query.wikidata.org/sparql?query=prefix%20neo%3A%20%3Cneo4j%3A%2F%2Fvoc%23%3E%20%0A%23Cats%0A%23SELECT%20%3Fitem%20%3Flabel%20%0ACONSTRUCT%20%7B%0A%3Fitem%20a%20neo%3ACategory%20%3B%20neo%3AsubCatOf%20%3FparentItem%20.%20%20%0A%20%20%3Fitem%20neo%3Aname%20%3Flabel%20.%0A%20%20%3FparentItem%20a%20neo%3ACategory%3B%20neo%3Aname%20%3FparentLabel%20.%0A%20%20%3Farticle%20a%20neo%3AWikipediaPage%3B%20schema%3Aabout%20%3Fitem%20%3B%0A%20%20%20%20%20%20%20%20%20%20%20%0A%7D%0AWHERE%20%0A%7B%0A%20%20%3Fitem%20wdt%3AP31%2Fwdt%3AP279*%20wd%3AQ2429814%20.%0A%20%20%3Fitem%20wdt%3AP31%7Cwdt%3AP279%20%3FparentItem%20.%0A%20%20%3Fitem%20rdfs%3Alabel%20%3Flabel%20.%0A%20%20filter(lang(%3Flabel)%20%3D%20%22en%22)%0A%20%20%3FparentItem%20rdfs%3Alabel%20%3FparentLabel%20.%0A%20%20filter(lang(%3FparentLabel)%20%3D%20%22en%22)%0A%20%20%0A%20%20OPTIONAL%20%7B%0A%20%20%20%20%20%20%3Farticle%20schema%3Aabout%20%3Fitem%20%3B%0A%20%20%20%20%20%20%20%20%20%20%20%20schema%3AinLanguage%20%22en%22%20%3B%0A%20%20%20%20%20%20%20%20%20%20%20%20schema%3AisPartOf%20%3Chttps%3A%2F%2Fen.wikipedia.org%2F%3E%20.%0A%20%20%20%20%7D%0A%20%20%0A%7D',
+  'Turtle' ,
+  { headerParams: { Accept: "application/x-turtle" } }
+);
+----
+
+== Querying the Software Taxonomy
+
+[source,cypher]
+----
+MATCH path = (:Category {name: "Neo4j"})-[:SUB_CAT_OF*]->(root)<-[:SUB_CAT_OF]-(sibling)
+WHERE not((root)-[:SUB_CAT_OF]->())
+RETURN path
+LIMIT 50;
+----
+
+==  dev.to
+
+image::https://thepracticaldev.s3.amazonaws.com/i/6hqmcjaxbgbon8ydw93z.png[]
+
+link:https://dev.to[dev.to^, role="medium button"]
+
+== Importing dev.to articles
+
+
+[source, cypher]
+----
+MERGE (a:Article {url: "https://dev.to/setevoy/neo4j-running-in-kubernetes-e4p"})
+WITH a
+CALL apoc.load.html(a.url, {
+  body: "body div.spec__body p",
+  title: "h1"
+})
+YIELD value
+UNWIND value.body AS item
+WITH a, apoc.text.join(collect(item.text), "") AS body, value.title[0].text AS title
+SET a.body = body , a.title = title;
+----
+
+== Entity extraction with APOC NLP
+
+APOC is Neo4j's standard utility library.
+It includes over 450 standard procedures, providing functionality for utilities, conversions, graph updates, and more.
+
+It has procedures that wrap the Natural Language Processing APIs for the major cloud providers, AWS, GCP, and Azure.
+
+image::https://s3.amazonaws.com/dev.assets.neo4j.com/wp-content/uploads/20200812/apoc_route3_colour.jpg[width="400px"]
+
+link:https://neo4j.com/docs/labs/apoc/current/nlp/gcp/[APOC NLP - GCP^, role="medium button"]
+
+== Specifying credentials
+
+[source,cypher]
+----
+:key => ("<insert-key-here>")
+----
+
+== Connecting dev.to and the Software Taxonomy
+
+[source,cypher]
+----
+MATCH (a:Article)
+WHERE not(exists(a.processed))
+CALL apoc.nlp.gcp.entities.stream(a, {
+  nodeProperty: "body",
+  key: $key
+})
+YIELD node, value
+SET node.processed = true
+WITH node, value
+UNWIND value.entities AS entity
+WITH entity, node
+WHERE not(entity.metadata.wikipedia_url is null)
+MERGE (page:WikipediaPage {uri: entity.metadata.wikipedia_url})
+MERGE (node)-[:HAS_ENTITY]->(page);
+----
