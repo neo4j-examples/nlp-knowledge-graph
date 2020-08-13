@@ -89,7 +89,7 @@ We'll wrap the call to `apoc.load.html` with a call to `apoc.periodic.iterate` s
 [source, cypher]
 ----
 CALL apoc.periodic.iterate(
-  "LOAD CSV WITH HEADERS FROM 'file:///articles.csv' AS row
+  "LOAD CSV WITH HEADERS FROM 'https://github.com/mneedham/nlp-knowledge-graph/raw/master/import/articles.csv' AS row
    RETURN row",
   "MERGE (a:Article {uri: row.uri})
    WITH a
