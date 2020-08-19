@@ -21,7 +21,7 @@ It acts as central storage for the structured data of its Wikimedia sister proje
 
 image::https://s3.amazonaws.com/dev.assets.neo4j.com/wp-content/uploads/20200812/Screenshot+from+2020-08-12+11-32-46.png[]
 
-https://query.wikidata.org/#prefix%20neo%3A%20%3Cneo4j%3A%2F%2Fvoc%23%3E%20%0A%23Cats%0A%23SELECT%20%3Fitem%20%3Flabel%20%0ACONSTRUCT%20%7B%0A%3Fitem%20a%20neo%3ACategory%20%3B%20neo%3AsubCatOf%20%3FparentItem%20.%20%20%0A%20%20%3Fitem%20neo%3Aname%20%3Flabel%20.%0A%20%20%3FparentItem%20a%20neo%3ACategory%3B%20neo%3Aname%20%3FparentLabel%20.%0A%20%20%3Farticle%20a%20neo%3AWikipediaPage%3B%20neo%3Aabout%20%3Fitem%20%3B%0A%20%20%20%20%20%20%20%20%20%20%20%0A%7D%0AWHERE%20%0A%7B%0A%20%20%3Fitem%20%28wdt%3AP31%7Cwdt%3AP279%29%2a%20wd%3AQ2429814%20.%0A%20%20%3Fitem%20wdt%3AP31%7Cwdt%3AP279%20%3FparentItem%20.%0A%20%20%3Fitem%20rdfs%3Alabel%20%3Flabel%20.%0A%20%20filter%28lang%28%3Flabel%29%20%3D%20%22en%22%29%0A%20%20%3FparentItem%20rdfs%3Alabel%20%3FparentLabel%20.%0A%20%20filter%28lang%28%3FparentLabel%29%20%3D%20%22en%22%29%0A%20%20%0A%20%20OPTIONAL%20%7B%0A%20%20%20%20%20%20%3Farticle%20schema%3Aabout%20%3Fitem%20%3B%0A%20%20%20%20%20%20%20%20%20%20%20%20schema%3AinLanguage%20%22en%22%20%3B%0A%20%20%20%20%20%20%20%20%20%20%20%20schema%3AisPartOf%20%3Chttps%3A%2F%2Fen.wikipedia.org%2F%3E%20.%0A%20%20%20%20%7D%0A%20%20%0A%7D^[Query the API^, role="medium button"]
+https://query.wikidata.org/#prefix%20neo%3A%20%3Cneo4j%3A%2F%2Fvoc%23%3E%20%0A%23Cats%0A%23SELECT%20%3Fitem%20%3Flabel%20%0ACONSTRUCT%20%7B%0A%3Fitem%20a%20neo%3ACategory%20%3B%20neo%3AsubCatOf%20%3FparentItem%20.%20%20%0A%20%20%3Fitem%20neo%3Aname%20%3Flabel%20.%0A%20%20%3FparentItem%20a%20neo%3ACategory%3B%20neo%3Aname%20%3FparentLabel%20.%0A%20%20%3Farticle%20a%20neo%3AWikipediaPage%3B%20neo%3Aabout%20%3Fitem%20%3B%0A%20%20%20%20%20%20%20%20%20%20%20%0A%7D%0AWHERE%20%0A%7B%0A%20%20%3Fitem%20%28wdt%3AP31%7Cwdt%3AP279%29%2a%20wd%3AQ2429814%20.%0A%20%20%3Fitem%20wdt%3AP31%7Cwdt%3AP279%20%3FparentItem%20.%0A%20%20%3Fitem%20rdfs%3Alabel%20%3Flabel%20.%0A%20%20filter%28lang%28%3Flabel%29%20%3D%20%22en%22%29%0A%20%20%3FparentItem%20rdfs%3Alabel%20%3FparentLabel%20.%0A%20%20filter%28lang%28%3FparentLabel%29%20%3D%20%22en%22%29%0A%20%20%0A%20%20OPTIONAL%20%7B%0A%20%20%20%20%20%20%3Farticle%20schema%3Aabout%20%3Fitem%20%3B%0A%20%20%20%20%20%20%20%20%20%20%20%20schema%3AinLanguage%20%22en%22%20%3B%0A%20%20%20%20%20%20%20%20%20%20%20%20schema%3AisPartOf%20%3Chttps%3A%2F%2Fen.wikipedia.org%2F%3E%20.%0A%20%20%20%20%7D%0A%20%20%0A%7D[Query the API^, role="medium button"]
 
 == Configuring n10s
 
@@ -192,7 +192,8 @@ CALL n10s.inference.nodesInCategory(c, {
 })
 YIELD node
 MATCH (node)<-[:HAS_ENTITY]-(article)
-RETURN article.uri, article.title, article.datetime
+RETURN article.uri, article.title, article.datetime,
+       collect(n10s.rdf.getIRILocalName(node.uri))  as explicitTopics
 ORDER By article.datetime DESC;
 ----
 
@@ -200,17 +201,50 @@ ORDER By article.datetime DESC;
 
 [source, cypher]
 ----
-MATCH (a:Article {uri: "https://dev.to/azure/learn-how-you-can-build-a-serverless-graphql-api-on-top-of-a-microservice-architecture-233g"}),
+MATCH (a:Article {uri: "https://dev.to/qainsights/performance-testing-neo4j-database-using-bolt-protocol-in-apache-jmeter-1oa9"}),
       path = (a)-[:HAS_ENTITY]->(wiki)-[:ABOUT]->(cat),
       otherPath = (wiki)<-[:HAS_ENTITY]-(other)
-return path, otherPath
+return path, otherPath;
 ----
 
 == Querying the Knowledge Graph - Similar articles
 
 [source, cypher]
 ----
-MATCH (a:Article {uri: "https://dev.to/azure/learn-how-you-can-build-a-serverless-graphql-api-on-top-of-a-microservice-architecture-233g"}),
+MATCH (a:Article {uri: "https://dev.to/qainsights/performance-testing-neo4j-database-using-bolt-protocol-in-apache-jmeter-1oa9"}),
+      entityPath = (a)-[:HAS_ENTITY]->(wiki)-[:ABOUT]->(cat),
+      path = (cat)-[:SUB_CAT_OF]->(parent)<-[:SUB_CAT_OF]-(otherCat),
+      otherEntityPath = (otherCat)<-[:ABOUT]-(otherWiki)<-[:HAS_ENTITY]-(other)
+RETURN other.title, other.uri,
+       [(other)-[:HAS_ENTITY]->()-[:ABOUT]->(entity) | entity.name] AS otherCategories,
+       collect([node in nodes(path) | node.name]) AS pathToOther;
+----
+
+== Adding a custom ontology
+
+We're now going to add a custom ontology of the GRANDstack.
+
+[source, cypher]
+----
+CALL n10s.nsprefixes.add('owl','http://www.w3.org/2002/07/owl#');
+CALL n10s.nsprefixes.add('rdfs','http://www.w3.org/2000/01/rdf-schema#');
+CALL n10s.mapping.add("http://www.w3.org/2000/01/rdf-schema#subClassOf","SUB_CAT_OF");
+CALL n10s.mapping.add("http://www.w3.org/2000/01/rdf-schema#label","name");
+CALL n10s.mapping.add("http://www.w3.org/2002/07/owl#Class","Category");
+----
+
+[source, cypher]
+----
+CALL n10s.rdf.preview.fetch("http://www.nsmntx.org/2020/08/swStacks","Turtle")
+----
+
+== Querying the Knowledge Graph - Similar articles
+
+And now if we try our similarity query again, we'll see articles from other tools in the GRANDstack
+
+[source, cypher]
+----
+MATCH (a:Article {uri: "https://dev.to/qainsights/performance-testing-neo4j-database-using-bolt-protocol-in-apache-jmeter-1oa9"}),
       entityPath = (a)-[:HAS_ENTITY]->(wiki)-[:ABOUT]->(cat),
       path = (cat)-[:SUB_CAT_OF]->(parent)<-[:SUB_CAT_OF]-(otherCat),
       otherEntityPath = (otherCat)<-[:ABOUT]-(otherWiki)<-[:HAS_ENTITY]-(other)
