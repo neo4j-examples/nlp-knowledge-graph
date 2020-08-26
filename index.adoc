@@ -27,12 +27,11 @@ https://query.wikidata.org/#prefix%20neo%3A%20%3Cneo4j%3A%2F%2Fvoc%23%3E%20%0A%2
 
 [source, cypher]
 ----
-CREATE CONSTRAINT n10s_unique_uri ON (r:Resource) ASSERT r.uri IS UNIQUE
-CALL n10s.graphconfig.init({handleVocabUris: "MAP"});
+include::cypher/queries.cypher[tag="constraint"]
 
-call n10s.nsprefixes.add('neo','neo4j://voc#');
-CALL n10s.mapping.add("neo4j://voc#subCatOf","SUB_CAT_OF");
-CALL n10s.mapping.add("neo4j://voc#about","ABOUT");
+include::cypher/queries.cypher[tag="init"]
+
+include::cypher/queries.cypher[tag="mappings"]
 ----
 
 == Importing Wikidata's Software Taxonomy into Neo4j
@@ -40,36 +39,26 @@ CALL n10s.mapping.add("neo4j://voc#about","ABOUT");
 .Software systems
 [source,cypher]
 ----
-WITH "https://query.wikidata.org/sparql?query=prefix%20neo%3A%20%3Cneo4j%3A%2F%2Fvoc%23%3E%20%0A%23Cats%0A%23SELECT%20%3Fitem%20%3Flabel%20%0ACONSTRUCT%20%7B%0A%3Fitem%20a%20neo%3ACategory%20%3B%20neo%3AsubCatOf%20%3FparentItem%20.%20%20%0A%20%20%3Fitem%20neo%3Aname%20%3Flabel%20.%0A%20%20%3FparentItem%20a%20neo%3ACategory%3B%20neo%3Aname%20%3FparentLabel%20.%0A%20%20%3Farticle%20a%20neo%3AWikipediaPage%3B%20neo%3Aabout%20%3Fitem%20%3B%0A%20%20%20%20%20%20%20%20%20%20%20%0A%7D%0AWHERE%20%0A%7B%0A%20%20%3Fitem%20(wdt%3AP31%7Cwdt%3AP279)*%20wd%3AQ2429814%20.%0A%20%20%3Fitem%20wdt%3AP31%7Cwdt%3AP279%20%3FparentItem%20.%0A%20%20%3Fitem%20rdfs%3Alabel%20%3Flabel%20.%0A%20%20filter(lang(%3Flabel)%20%3D%20%22en%22)%0A%20%20%3FparentItem%20rdfs%3Alabel%20%3FparentLabel%20.%0A%20%20filter(lang(%3FparentLabel)%20%3D%20%22en%22)%0A%20%20%0A%20%20OPTIONAL%20%7B%0A%20%20%20%20%20%20%3Farticle%20schema%3Aabout%20%3Fitem%20%3B%0A%20%20%20%20%20%20%20%20%20%20%20%20schema%3AinLanguage%20%22en%22%20%3B%0A%20%20%20%20%20%20%20%20%20%20%20%20schema%3AisPartOf%20%3Chttps%3A%2F%2Fen.wikipedia.org%2F%3E%20.%0A%20%20%20%20%7D%0A%20%20%0A%7D" AS softwareSystemsUri
-CALL n10s.rdf.import.fetch(softwareSystemsUri, 'Turtle' , { headerParams: { Accept: "application/x-turtle" } })
-YIELD terminationStatus,	triplesLoaded,	triplesParsed,	namespaces,	extraInfo,	callParams
-RETURN terminationStatus,	triplesLoaded,	triplesParsed,	namespaces,	extraInfo,	callParams;
+include::cypher/queries.cypher[tag="software-systems"]
 ----
 
 .Programming languages
 [source,cypher]
 ----
-WITH "https://query.wikidata.org/sparql?query=prefix%20neo%3A%20%3Cneo4j%3A%2F%2Fvoc%23%3E%20%0A%23Cats%0A%23SELECT%20%3Fitem%20%3Flabel%20%0ACONSTRUCT%20%7B%0A%3Fitem%20a%20neo%3ACategory%20%3B%20neo%3AsubCatOf%20%3FparentItem%20.%20%20%0A%20%20%3Fitem%20neo%3Aname%20%3Flabel%20.%0A%20%20%3FparentItem%20a%20neo%3ACategory%3B%20neo%3Aname%20%3FparentLabel%20.%0A%20%20%3Farticle%20a%20neo%3AWikipediaPage%3B%20neo%3Aabout%20%3Fitem%20%3B%0A%20%20%20%20%20%20%20%20%20%20%20%0A%7D%0AWHERE%20%0A%7B%0A%20%20%3Fitem%20(wdt%3AP31%7Cwdt%3AP279)*%20wd%3AQ9143%20.%0A%20%20%3Fitem%20wdt%3AP31%7Cwdt%3AP279%20%3FparentItem%20.%0A%20%20%3Fitem%20rdfs%3Alabel%20%3Flabel%20.%0A%20%20filter(lang(%3Flabel)%20%3D%20%22en%22)%0A%20%20%3FparentItem%20rdfs%3Alabel%20%3FparentLabel%20.%0A%20%20filter(lang(%3FparentLabel)%20%3D%20%22en%22)%0A%20%20%0A%20%20OPTIONAL%20%7B%0A%20%20%20%20%20%20%3Farticle%20schema%3Aabout%20%3Fitem%20%3B%0A%20%20%20%20%20%20%20%20%20%20%20%20schema%3AinLanguage%20%22en%22%20%3B%0A%20%20%20%20%20%20%20%20%20%20%20%20schema%3AisPartOf%20%3Chttps%3A%2F%2Fen.wikipedia.org%2F%3E%20.%0A%20%20%20%20%7D%0A%20%20%0A%7D" AS programmingLanguagesUri
-CALL n10s.rdf.import.fetch(programmingLanguagesUri, 'Turtle' , { headerParams: { Accept: "application/x-turtle" } })
-YIELD terminationStatus,	triplesLoaded,	triplesParsed,	namespaces,	extraInfo,	callParams
-RETURN terminationStatus,	triplesLoaded,	triplesParsed,	namespaces,	extraInfo,	callParams;
+include::cypher/queries.cypher[tag="programming-languages"]
 ----
 
 .Data formats
 [source,cypher]
 ----
-WITH "https://query.wikidata.org/sparql?query=prefix%20neo%3A%20%3Cneo4j%3A%2F%2Fvoc%23%3E%20%0A%23Cats%0A%23SELECT%20%3Fitem%20%3Flabel%20%0ACONSTRUCT%20%7B%0A%3Fitem%20a%20neo%3ACategory%20%3B%20neo%3AsubCatOf%20%3FparentItem%20.%20%20%0A%20%20%3Fitem%20neo%3Aname%20%3Flabel%20.%0A%20%20%3FparentItem%20a%20neo%3ACategory%3B%20neo%3Aname%20%3FparentLabel%20.%0A%20%20%3Farticle%20a%20neo%3AWikipediaPage%3B%20neo%3Aabout%20%3Fitem%20%3B%0A%20%20%20%20%20%20%20%20%20%20%20%0A%7D%0AWHERE%20%0A%7B%0A%20%20%3Fitem%20(wdt%3AP31%7Cwdt%3AP279)*%20wd%3AQ24451526%20.%0A%20%20%3Fitem%20wdt%3AP31%7Cwdt%3AP279%20%3FparentItem%20.%0A%20%20%3Fitem%20rdfs%3Alabel%20%3Flabel%20.%0A%20%20filter(lang(%3Flabel)%20%3D%20%22en%22)%0A%20%20%3FparentItem%20rdfs%3Alabel%20%3FparentLabel%20.%0A%20%20filter(lang(%3FparentLabel)%20%3D%20%22en%22)%0A%20%20%0A%20%20OPTIONAL%20%7B%0A%20%20%20%20%20%20%3Farticle%20schema%3Aabout%20%3Fitem%20%3B%0A%20%20%20%20%20%20%20%20%20%20%20%20schema%3AinLanguage%20%22en%22%20%3B%0A%20%20%20%20%20%20%20%20%20%20%20%20schema%3AisPartOf%20%3Chttps%3A%2F%2Fen.wikipedia.org%2F%3E%20.%0A%20%20%20%20%7D%0A%20%20%0A%7D" AS dataFormatsUri
-CALL n10s.rdf.import.fetch(dataFormatsUri, 'Turtle' , { headerParams: { Accept: "application/x-turtle" } })
-YIELD terminationStatus,	triplesLoaded,	triplesParsed,	namespaces,	extraInfo,	callParams
-RETURN terminationStatus,	triplesLoaded,	triplesParsed,	namespaces,	extraInfo,	callParams;
+include::cypher/queries.cypher[tag="data-formats"]
 ----
 
 == Querying the Software Taxonomy - Finding all children
 
 [source, cypher]
 ----
-MATCH path = (c:Category {name: "version control system"})<-[:SUB_CAT_OF*]-(child)
-RETURN path
+include::cypher/queries.cypher[tag="version-control"]
 ----
 
 == Querying the Software Taxonomy - Finding siblings
@@ -95,8 +84,7 @@ https://github.com/mneedham/nlp-knowledge-graph/blob/master/import/articles.csv[
 
 [source,cypher]
 ----
-LOAD CSV WITH HEADERS FROM 'https://github.com/mneedham/nlp-knowledge-graph/raw/master/import/articles.csv' AS row
-RETURN row;
+include::cypher/queries.cypher[tag="dev-to-articles"]
 ----
 
 == Importing dev.to articles
@@ -106,25 +94,7 @@ We'll wrap the call to `apoc.load.html` with a call to `apoc.periodic.iterate` s
 
 [source, cypher]
 ----
-CALL apoc.periodic.iterate(
-  "LOAD CSV WITH HEADERS FROM 'https://github.com/mneedham/nlp-knowledge-graph/raw/master/import/articles.csv' AS row
-   RETURN row",
-  "MERGE (a:Article {uri: row.uri})
-   WITH a
-   CALL apoc.load.html(a.uri, {
-     body: 'body div.spec__body p',
-     title: 'h1',
-     time: 'time'
-   })
-   YIELD value
-   UNWIND value.body AS item
-   WITH a,
-        apoc.text.join(collect(item.text), '') AS body,
-        value.title[0].text AS title,
-        value.time[0].attributes.datetime AS date
-   SET a.body = body , a.title = title, a.datetime = datetime(date)",
-  {batchSize: 5, parallel: true}
-);
+include::cypher/queries.cypher[tag="dev-to-import"]
 ----
 
 == Querying dev.to articles
@@ -151,31 +121,14 @@ link:https://neo4j.com/docs/labs/apoc/current/nlp/gcp/[APOC NLP - GCP^, role="me
 
 [source,cypher]
 ----
-:params key => ("<insert-key-here>")
+include::cypher/queries.cypher[tag="set-key"]
 ----
 
 == Connecting dev.to and the Software Taxonomy
 
 [source,cypher]
 ----
-CALL apoc.periodic.iterate(
-  "MATCH (a:Article)
-   WHERE not(exists(a.processed))
-   RETURN a",
-  "CALL apoc.nlp.gcp.entities.stream([item in $_batch | item.a], {
-     nodeProperty: 'body',
-     key: $key
-   })
-   YIELD node, value
-   SET node.processed = true
-   WITH node, value
-   UNWIND value.entities AS entity
-   WITH entity, node
-   WHERE not(entity.metadata.wikipedia_url is null)
-   MERGE (page:Resource {uri: entity.metadata.wikipedia_url})
-   SET page:WikipediaPage
-   MERGE (node)-[:HAS_ENTITY]->(page)",
-  {batchMode: "BATCH_SINGLE", batchSize: 10, params: {key: $key}});
+include::cypher/queries.cypher[tag="nlp-import"]
 ----
 
 == Querying the Knowledge Graph - Semantic Search
@@ -185,39 +138,21 @@ The `n10s.inference.nodesInCategory` procedure automates this for us, as shown b
 
 [source,cypher]
 ----
-MATCH (c:Category {name: "NoSQL database management system"})
-CALL n10s.inference.nodesInCategory(c, {
-  inCatRel: "ABOUT",
-  subCatRel: "SUB_CAT_OF"
-})
-YIELD node
-MATCH (node)<-[:HAS_ENTITY]-(article)
-RETURN article.uri, article.title, article.datetime,
-       collect(n10s.rdf.getIRILocalName(node.uri))  as explicitTopics
-ORDER By article.datetime DESC;
+include::cypher/queries.cypher[tag="semantic-search"]
 ----
 
 == Querying the Knowledge Graph - Similar articles
 
 [source, cypher]
 ----
-MATCH (a:Article {uri: "https://dev.to/qainsights/performance-testing-neo4j-database-using-bolt-protocol-in-apache-jmeter-1oa9"}),
-      path = (a)-[:HAS_ENTITY]->(wiki)-[:ABOUT]->(cat),
-      otherPath = (wiki)<-[:HAS_ENTITY]-(other)
-return path, otherPath;
+include::cypher/queries.cypher[tag="similar-articles-1"]
 ----
 
 == Querying the Knowledge Graph - Similar articles
 
 [source, cypher]
 ----
-MATCH (a:Article {uri: "https://dev.to/qainsights/performance-testing-neo4j-database-using-bolt-protocol-in-apache-jmeter-1oa9"}),
-      entityPath = (a)-[:HAS_ENTITY]->(wiki)-[:ABOUT]->(cat),
-      path = (cat)-[:SUB_CAT_OF]->(parent)<-[:SUB_CAT_OF]-(otherCat),
-      otherEntityPath = (otherCat)<-[:ABOUT]-(otherWiki)<-[:HAS_ENTITY]-(other)
-RETURN other.title, other.uri,
-       [(other)-[:HAS_ENTITY]->()-[:ABOUT]->(entity) | entity.name] AS otherCategories,
-       collect([node in nodes(path) | node.name]) AS pathToOther;
+include::cypher/queries.cypher[tag="similar-articles-2"]
 ----
 
 == Adding a custom ontology
@@ -226,17 +161,19 @@ We're now going to add a custom ontology of the GRANDstack.
 
 [source, cypher]
 ----
-CALL n10s.nsprefixes.add('owl','http://www.w3.org/2002/07/owl#');
-CALL n10s.nsprefixes.add('rdfs','http://www.w3.org/2000/01/rdf-schema#');
-CALL n10s.mapping.add("http://www.w3.org/2000/01/rdf-schema#subClassOf","SUB_CAT_OF");
-CALL n10s.mapping.add("http://www.w3.org/2000/01/rdf-schema#label","name");
-CALL n10s.mapping.add("http://www.w3.org/2002/07/owl#Class","Category");
+include::cypher/queries.cypher[tag="custom-ontology-init"]
 ----
 
 [source, cypher]
 ----
-CALL n10s.rdf.preview.fetch("http://www.nsmntx.org/2020/08/swStacks","Turtle")
+include::cypher/queries.cypher[tag="custom-ontology-preview"]
 ----
+
+[source, cypher]
+----
+include::cypher/queries.cypher[tag="custom-ontology-import"]
+----
+
 
 == Querying the Knowledge Graph - Similar articles
 
