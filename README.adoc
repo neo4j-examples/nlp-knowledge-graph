@@ -2,7 +2,30 @@
 
 The code in this repository is from a talk at the https://neo4j.com/connections/knowledge-graphs/[Neo4j Connections: Knowledge Graphs^] event.
 
-The accompanying Neo4j Browser guide can be run with the following command:
+== Running the examples
+
+You can run the examples by following the instructions below:
+
+=== Download code from GitHub
+
+[source, bash]
+----
+git clone https://github.com/neo4j-examples/nlp-knowledge-graph.git
+cd nlp-knowledge-graph
+----
+
+=== Launch Neo4j
+
+You can launch Neo4j by using the following command:
+
+[source,bash]
+----
+docker-compose up
+----
+
+This will spin up a Neo4j server, which can be accessed at http://localhost:7474
+
+You can then play a Neo4j Browser guide by running the following command:
 
 [source,cypher]
 ----
