@@ -79,7 +79,7 @@ LIMIT 50;
 
 ==  Guardian Football
 
-image::https://thepracticaldev.s3.amazonaws.com/i/6hqmcjaxbgbon8ydw93z.png[]
+image::https://dist.neo4j.com/wp-content/uploads/20201012052039/Screenshot-from-2020-10-12-13-20-27.png[]
 
 link:https://www.theguardian.com/football[Guardian Football^, role="medium button"]
 
