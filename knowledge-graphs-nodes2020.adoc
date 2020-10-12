@@ -1,0 +1,276 @@
+= NLP and Knowledge Graphs 2020
+
+== NLP and Knowledge Graphs 2020
+
+In this guide we will use neosemantics and APOC NLP to create a sports knowledge graph.
+
+== neosemantics (n10s)
+
+image::https://s3.amazonaws.com/dev.assets.neo4j.com/wp-content/uploads/n10s-logo.png[float="right", width="300px"]
+
+neosemantics (n10s) is a plugin that enables the use of RDF and its associated vocabularies like (OWL,RDFS,SKOS and others) in Neo4j.
+
+You can use n10s to easily build integrations with RDF-generating / RDF-consuming components. You can also use it to validate your graph against constraints expressed in SHACL or to run basic inferencing.
+
+https://neo4j.com/labs/neosemantics-rdf/[Learn more^, role="medium button"]
+
+== Wikidata SPARQL API
+
+Wikidata is a free and open knowledge base that can be read and edited by both humans and machines.
+It acts as central storage for the structured data of its Wikimedia sister projects including Wikipedia.
+
+image::https://s3.amazonaws.com/dev.assets.neo4j.com/wp-content/uploads/20200812/Screenshot+from+2020-08-12+11-32-46.png[]
+
+https://query.wikidata.org/#prefix%20neo%3A%20%3Cneo4j%3A%2F%2Fvoc%23%3E%20%0A%23Cats%0A%23SELECT%20%3Fitem%20%3Flabel%20%0ACONSTRUCT%20%7B%0A%3Fitem%20a%20neo%3ACategory%20%3B%20neo%3AsubCatOf%20%3FparentItem%20.%20%20%0A%20%20%3Fitem%20neo%3Aname%20%3Flabel%20.%0A%20%20%3FparentItem%20a%20neo%3ACategory%3B%20neo%3Aname%20%3FparentLabel%20.%0A%20%20%3Farticle%20a%20neo%3AWikipediaPage%3B%20neo%3Aabout%20%3Fitem%20%3B%0A%20%20%20%20%20%20%20%20%20%20%20%0A%7D%0AWHERE%20%0A%7B%0A%20%20%3Fitem%20%28wdt%3AP31%7Cwdt%3AP279%29%2a%20wd%3AQ2429814%20.%0A%20%20%3Fitem%20wdt%3AP31%7Cwdt%3AP279%20%3FparentItem%20.%0A%20%20%3Fitem%20rdfs%3Alabel%20%3Flabel%20.%0A%20%20filter%28lang%28%3Flabel%29%20%3D%20%22en%22%29%0A%20%20%3FparentItem%20rdfs%3Alabel%20%3FparentLabel%20.%0A%20%20filter%28lang%28%3FparentLabel%29%20%3D%20%22en%22%29%0A%20%20%0A%20%20OPTIONAL%20%7B%0A%20%20%20%20%20%20%3Farticle%20schema%3Aabout%20%3Fitem%20%3B%0A%20%20%20%20%20%20%20%20%20%20%20%20schema%3AinLanguage%20%22en%22%20%3B%0A%20%20%20%20%20%20%20%20%20%20%20%20schema%3AisPartOf%20%3Chttps%3A%2F%2Fen.wikipedia.org%2F%3E%20.%0A%20%20%20%20%7D%0A%20%20%0A%7D[Query the API^, role="medium button"]
+
+== Configuring n10s
+
+[source, cypher]
+----
+CREATE CONSTRAINT n10s_unique_uri ON (r:Resource) ASSERT r.uri IS UNIQUE;
+
+CALL n10s.graphconfig.init({handleVocabUris: "MAP"});
+
+call n10s.nsprefixes.add('neo','neo4j://voc#');
+CALL n10s.mapping.add("neo4j://voc#league","LEAGUE");
+CALL n10s.mapping.add("neo4j://voc#about","ABOUT");
+CALL n10s.mapping.add("neo4j://voc#country","COUNTRY");
+CALL n10s.mapping.add("neo4j://voc#club","CLUB");
+----
+
+== Importing Wikidata's Sports Taxonomy into Neo4j
+
+.Players
+[source,cypher]
+----
+CALL n10s.rdf.import.fetch("https://query.wikidata.org/sparql?query=prefix%20neo%3A%20%3Cneo4j%3A%2F%2Fvoc%23%3E%20%0ACONSTRUCT%20%7B%0A%20%20%3Fitem%20neo%3Aname%20%3Flabel%3B%0A%20%20%20%20%20%20%20%20neo%3Aclub%20%3Fclub%3B%0A%20%20%20%20%20%20%20%20a%20neo%3AHuman.%0A%20%20%3Farticle%20a%20neo%3AWikipediaPage%3B%20%0A%20%20%20%20%20%20%20%20%20%20%20%20%20neo%3Aabout%20%3Fitem%20%3B%20%20%20.%0A%20%20%3Fclub%20a%20neo%3AClub%20%3B%20%0A%20%20%20%20%20%20%20%20%20%20neo%3Aname%20%3FclubName%20%3B%0A%20%20%20%20%20%20%20%20%20%20neo%3Aleague%20%3Fleague%20.%0A%20%20%3Fleague%20a%20neo%3ALeague%20%3B%0A%20%20%20%20%20%20%20%20%20%20%20%20neo%3Aname%20%3FleagueName%20.%0A%20%20%0A%20%20%3FclubArticle%20a%20neo%3AWikipediaPage%3B%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20neo%3Aabout%20%3Fclub%20.%0A%20%20%20%20%20%20%20%20%20%20%20%20%0A%20%20%3FcountryArticle%20a%20neo%3AWikipediaPage%3B%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20neo%3Aabout%20%3Fcountry%20.%20%20%20%20%20%20%20%20%20%20%20%20%0A%7D%0AWHERE%20%0A%7B%0A%20%20%3Fitem%20wdt%3AP106%20wd%3AQ937857%20.%0A%20%20%3Fitem%20wdt%3AP1532%20%3Fcountry%20.%0A%20%20%3Fitem%20wdt%3AP54%20%3Fclub%20.%0A%20%20%3Fclub%20wdt%3AP118%20%3Fleague%20.%0A%20%20%0A%20%20FILTER%20(%3Fleague%20IN%20(wd%3AQ324867%2C%20wd%3AQ9448%2C%20wd%3AQ15804%20)%20)%20%20%0A%20%20%0A%20%20%3Fcountry%20rdfs%3Alabel%20%3FcountryName%20.%0A%20%20filter(lang(%3FcountryName)%20%3D%20%22en%22)%0A%20%20%0A%20%20%3Fitem%20rdfs%3Alabel%20%3Flabel%20.%0A%20%20filter(lang(%3Flabel)%20%3D%20%22en%22)%0A%20%20%0A%20%20%3Fclub%20rdfs%3Alabel%20%3FclubName%20.%0A%20%20filter(lang(%3FclubName)%20%3D%20%22en%22)%0A%20%20%0A%20%20%3Fleague%20rdfs%3Alabel%20%3FleagueName%20.%0A%20%20filter(lang(%3FleagueName)%20%3D%20%22en%22)%0A%0A%20%20OPTIONAL%20%7B%0A%20%20%20%20%20%20%3Farticle%20schema%3Aabout%20%3Fitem%20%3B%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20schema%3AinLanguage%20%22en%22%20%3B%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20schema%3AisPartOf%20%3Chttps%3A%2F%2Fen.wikipedia.org%2F%3E%20.%0A%20%20%20%20%0A%20%20%20%20%20%20%3FclubArticle%20schema%3Aabout%20%3Fclub%20%3B%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20schema%3AinLanguage%20%22en%22%20%3B%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20schema%3AisPartOf%20%3Chttps%3A%2F%2Fen.wikipedia.org%2F%3E%20.%0A%20%20%20%20%0A%20%20%20%20%20%20%3FcountryArticle%20schema%3Aabout%20%3Fcountry%20%3B%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20schema%3AinLanguage%20%22en%22%20%3B%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20schema%3AisPartOf%20%3Chttps%3A%2F%2Fen.wikipedia.org%2F%3E%20.%20%20%20%20%0A%20%20%20%20%7D%0A%20%20%7D", 'Turtle' , { headerParams: { Accept: "application/x-turtle" } })
+----
+
+.Leagues
+[source,cypher]
+----
+CALL n10s.rdf.import.fetch("https://query.wikidata.org/sparql?query=prefix%20neo%3A%20%3Cneo4j%3A%2F%2Fvoc%23%3E%20%0ACONSTRUCT%20%7B%0A%20%20%3Fleague%20a%20neo%3ALeague%20%3B%0A%20%20%20%20%20%20%20%20%20%20%20%20neo%3Aname%20%3FleagueName%20.%0A%20%20%0A%20%20%3FleagueArticle%20a%20neo%3AWikipediaPage%3B%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20neo%3Aabout%20%3Fleague%20.%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%0A%7D%0AWHERE%20%0A%7B%0A%20%20%3Fclub%20wdt%3AP118%20%3Fleague%20.%0A%20%0A%20%20FILTER%20(%3Fleague%20IN%20(wd%3AQ324867%2C%20wd%3AQ9448%2C%20wd%3AQ15804%20)%20)%20%20%0A%20%20%0A%20%20%3Fleague%20rdfs%3Alabel%20%3FleagueName%20.%0A%20%20filter(lang(%3FleagueName)%20%3D%20%22en%22)%0A%0A%20%20OPTIONAL%20%7B%20%20%20%20%0A%20%20%20%20%20%20%3FleagueArticle%20schema%3Aabout%20%3Fleague%20%3B%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20schema%3AinLanguage%20%22en%22%20%3B%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20schema%3AisPartOf%20%3Chttps%3A%2F%2Fen.wikipedia.org%2F%3E%20.%20%20%20%20%0A%20%20%20%20%7D%0A%20%20%7D", 'Turtle' , { headerParams: { Accept: "application/x-turtle" } })
+----
+
+.Managers
+[source,cypher]
+----
+CALL n10s.rdf.import.fetch("https://query.wikidata.org/sparql?query=prefix%20neo%3A%20%3Cneo4j%3A%2F%2Fvoc%23%3E%20%0ACONSTRUCT%20%7B%0A%20%20%3Fitem%20neo%3Aname%20%3Flabel%3B%0A%20%20%20%20%20%20%20%20neo%3Aclub%20%3Fclub%3B%0A%20%20%20%20%20%20%20%20a%20neo%3AHuman.%0A%20%20%3Farticle%20a%20neo%3AWikipediaPage%3B%20%0A%20%20%20%20%20%20%20%20%20%20%20%20%20neo%3Aabout%20%3Fitem%20%3B%20%20%20.%0A%20%20%3Fclub%20a%20neo%3AClub%20%3B%20%0A%20%20%20%20%20%20%20%20%20%20neo%3Aname%20%3FclubName%20%3B%0A%20%20%20%20%20%20%20%20%20%20neo%3Aleague%20%3Fleague%20.%0A%20%20%3Fleague%20a%20neo%3ALeague%20%3B%0A%20%20%20%20%20%20%20%20%20%20%20%20neo%3Aname%20%3FleagueName%20.%0A%20%20%0A%20%20%3FclubArticle%20a%20neo%3AWikipediaPage%3B%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20neo%3Aabout%20%3Fclub%20.%20%20%20%20%20%20%20%20%20%0A%7D%0AWHERE%20%0A%7B%0A%20%20%3Fitem%20wdt%3AP106%20wd%3AQ628099%20.%0A%20%20%3Fitem%20wdt%3AP6087%20%3Fclub%20.%0A%20%20%3Fclub%20wdt%3AP118%20%3Fleague%20.%0A%20%20%0A%20%20FILTER%20(%3Fleague%20IN%20(wd%3AQ324867%2C%20wd%3AQ9448%2C%20wd%3AQ15804%20)%20)%20%20%0A%0A%20%20%0A%20%20%3Fitem%20rdfs%3Alabel%20%3Flabel%20.%0A%20%20filter(lang(%3Flabel)%20%3D%20%22en%22)%0A%20%20%0A%20%20%3Fclub%20rdfs%3Alabel%20%3FclubName%20.%0A%20%20filter(lang(%3FclubName)%20%3D%20%22en%22)%0A%20%20%0A%20%20%3Fleague%20rdfs%3Alabel%20%3FleagueName%20.%0A%20%20filter(lang(%3FleagueName)%20%3D%20%22en%22)%0A%0A%20%20OPTIONAL%20%7B%0A%20%20%20%20%20%20%3Farticle%20schema%3Aabout%20%3Fitem%20%3B%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20schema%3AinLanguage%20%22en%22%20%3B%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20schema%3AisPartOf%20%3Chttps%3A%2F%2Fen.wikipedia.org%2F%3E%20.%0A%20%20%20%20%0A%20%20%20%20%20%20%3FclubArticle%20schema%3Aabout%20%3Fclub%20%3B%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20schema%3AinLanguage%20%22en%22%20%3B%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20schema%3AisPartOf%20%3Chttps%3A%2F%2Fen.wikipedia.org%2F%3E%20.%0A%20%20%20%20%7D%0A%20%20%7D", 'Turtle' , { headerParams: { Accept: "application/x-turtle" } });
+----
+
+== Querying the Software Taxonomy - Finding all children
+
+[source, cypher]
+----
+MATCH path = (c:Resource {name: "Premier League"})<-[:PART_OF*]-(child)
+RETURN path
+LIMIT 25;
+----
+
+== Querying the Software Taxonomy - Finding siblings
+
+[source,cypher]
+----
+MATCH path = (:Resource {name: "Manchester United F.C."})-[:PART_OF*]->(root)<-[:PART_OF]-(sibling)
+WHERE not((root)-[:PART_OF]->())
+RETURN path
+LIMIT 50;
+----
+
+==  Guardian Football
+
+image::https://thepracticaldev.s3.amazonaws.com/i/6hqmcjaxbgbon8ydw93z.png[]
+
+link:https://www.theguardian.com/football[Guardian Football^, role="medium button"]
+
+== Importing Guardian Football articles
+
+We're going to some articles from the Guardian football section into Neo4j.
+We can access an RSS feed of the articles are https://www.theguardian.com/football/rss
+
+[source,cypher]
+----
+CALL apoc.load.xml('https://www.theguardian.com/football/rss','rss/channel/item')
+YIELD value
+WITH value WHERE value._type = 'item'
+RETURN value AS c;
+----
+
+== Importing Guardian articles
+
+We're going to use the `apoc.load.xml` procedure to extract the body and title from each of these articles.
+We'll wrap the call to `apoc.load.xml` with a call to `apoc.periodic.iterate` so that we can process the articles concurrently:
+
+[source,cypher]
+----
+CREATE CONSTRAINT on (c:Category)
+ASSERT c.name is UNIQUE;
+
+CREATE CONSTRAINT on (a:Article)
+ASSERT a.uri is UNIQUE;
+----
+
+[source, cypher]
+----
+CALL apoc.periodic.iterate(
+  "CALL apoc.load.xml('https://www.theguardian.com/football/rss','rss/channel/item')
+   YIELD value
+   WITH value WHERE value._type = 'item'
+   RETURN value AS c",
+  "WITH c, [i in c._children where i._type = 'title' | i][0]._text AS title,
+        [i in c._children where i._type = 'link' | i][0]._text AS link,
+        [i in c._children where i._type = 'description' | i][0]._text AS description,
+        [i in c._children where i._type = 'date' | i][0]._text AS date,
+        [cat in [i in c._children where i._type = 'category' | i] | cat._text] AS categories
+   MERGE (a:Article {uri: link})
+   SET a.body = apoc.text.regreplace(description, '<[^>]*>', ' ') , a.title = title, a.datetime = datetime(date)
+   FOREACH(c in categories | MERGE (category:Category {name: c}) MERGE (a)-[:IN_CATEGORY]->(category) )",
+  {batchSize: 5, parallel: true}
+)
+YIELD batches, total, timeTaken, committedOperations
+RETURN batches, total, timeTaken, committedOperations;
+----
+
+== Querying articles
+
+[source,cypher]
+----
+MATCH (a:Article)
+RETURN a.uri, a.title, a.body, a.datetime
+ORDER BY a.datetime DESC;
+----
+
+[source,cypher]
+----
+MATCH (n:Article)
+RETURN n.uri, n.title,
+       [(n)-[:IN_CATEGORY]->(c) | c.name] AS categories,
+       [(n)-[:HAS_ENTITY]->(e) | n10s.rdf.getIRILocalName(e.uri)] AS entities;
+----
+
+== Entity extraction with APOC NLP
+
+APOC is Neo4j's standard utility library.
+It includes over 450 standard procedures, providing functionality for utilities, conversions, graph updates, and more.
+
+It has procedures that wrap the Natural Language Processing APIs for the major cloud providers, AWS, GCP, and Azure.
+
+image::https://s3.amazonaws.com/dev.assets.neo4j.com/wp-content/uploads/20200812/apoc_route3_colour.jpg[width="400px"]
+
+link:https://neo4j.com/docs/labs/apoc/current/nlp/gcp/[APOC NLP - GCP^, role="medium button"]
+
+== Specifying credentials
+
+[source,cypher]
+----
+:params key => ("<insert-key-here>")
+----
+
+== Connecting sports articles and the Sports Taxonomy
+
+[source,cypher]
+----
+CALL apoc.periodic.iterate(
+  "MATCH (a:Article)
+   WHERE not(exists(a.processed))
+   RETURN a",
+  "CALL apoc.nlp.gcp.entities.stream([item in $_batch | item.a], {
+     nodeProperty: 'body',
+     key: $key
+   })
+   YIELD node, value
+   SET node.processed = true
+   WITH node, value
+   UNWIND value.entities AS entity
+   WITH entity, node
+   WHERE not(entity.metadata.wikipedia_url is null)
+   WITH  node, entity.metadata.wikipedia_url AS uri
+   MERGE (page:Resource {uri: 'https://en.wikipedia.org/wiki/' + apoc.text.urlencode(n10s.rdf.getIRILocalName(uri))})
+   SET page:WikipediaPage
+   MERGE (node)-[:HAS_ENTITY]->(page)",
+  {batchMode: "BATCH_SINGLE", batchSize: 10, params: {key: $key}});
+----
+
+== Querying the Knowledge Graph - Semantic Search
+
+We can write a query that starts from a top level category and finds all the articles attached to the underlying taxonomy.
+The `n10s.inference.nodesInCategory` procedure automates this for us, as shown below:
+
+[source,cypher]
+----
+MATCH (c:Resource)
+WHERE c.name contains "Real Madrid"
+CALL n10s.inference.nodesInCategory(c, {
+  inCatRel: "ABOUT",
+  subCatRel: "PART_OF"
+})
+YIELD node
+MATCH (node)<-[:HAS_ENTITY]-(article)
+RETURN article.uri AS uri, article.title AS title, article.datetime AS date,
+       collect(n10s.rdf.getIRILocalName(node.uri))  as explicitTopics
+ORDER BY date DESC
+----
+
+== Querying the Knowledge Graph - Similar articles
+
+[source, cypher]
+----
+MATCH (a:Article {uri: "https://www.theguardian.com/football/blog/2020/oct/11/plan-to-mend-the-great-crack-in-football-pyramid-should-not-be-swept-off-the-table"}),
+      path = (a)-[:HAS_ENTITY]->(wiki)-[:ABOUT]->(cat),
+      otherPath = (wiki)<-[:HAS_ENTITY]-(other)
+return path, otherPath;
+----
+
+== Querying the Knowledge Graph - Similar articles
+
+[source, cypher]
+----
+MATCH (a:Article {uri: "https://www.theguardian.com/football/blog/2020/oct/11/plan-to-mend-the-great-crack-in-football-pyramid-should-not-be-swept-off-the-table"}),
+      entityPath = (a)-[:HAS_ENTITY]->(wiki)-[:ABOUT]->(cat),
+      path = (cat)-[:PART_OF]->(parent)<-[:PART_OF]-(otherCat),
+      otherEntityPath = (otherCat)<-[:ABOUT]-(otherWiki)<-[:HAS_ENTITY]-(other)
+RETURN other.title, other.uri,
+       [(other)-[:HAS_ENTITY]->()-[:ABOUT]->(entity) | entity.name] AS otherCategories,
+       collect([node in nodes(path) | node.name]) AS pathToOther;
+----
+
+== Adding a custom ontology
+
+We're now going to add a custom ontology of the GRANDstack.
+
+[source, cypher]
+----
+CALL n10s.nsprefixes.add('owl','http://www.w3.org/2002/07/owl#');
+CALL n10s.nsprefixes.add('rdfs','http://www.w3.org/2000/01/rdf-schema#');
+CALL n10s.mapping.add("http://www.w3.org/2000/01/rdf-schema#subClassOf","SUB_CAT_OF");
+CALL n10s.mapping.add("http://www.w3.org/2000/01/rdf-schema#label","name");
+CALL n10s.mapping.add("http://www.w3.org/2002/07/owl#Class","Category");
+----
+
+[source, cypher]
+----
+CALL n10s.rdf.preview.fetch("http://www.nsmntx.org/2020/08/swStacks","Turtle");
+----
+
+[source, cypher]
+----
+CALL n10s.rdf.import.fetch("http://www.nsmntx.org/2020/08/swStacks","Turtle")
+YIELD terminationStatus, triplesLoaded, triplesParsed, namespaces, callParams
+RETURN terminationStatus, triplesLoaded, triplesParsed, namespaces, callParams;
+----
+
+
+== Querying the Knowledge Graph - Similar articles
+
+And now if we try our similarity query again, we'll see articles from other tools in the GRANDstack
+
+[source, cypher]
+----
+MATCH (a:Article {uri: "https://dev.to/qainsights/performance-testing-neo4j-database-using-bolt-protocol-in-apache-jmeter-1oa9"}),
+      entityPath = (a)-[:HAS_ENTITY]->(wiki)-[:ABOUT]->(cat),
+      path = (cat)-[:SUB_CAT_OF]->(parent)<-[:SUB_CAT_OF]-(otherCat),
+      otherEntityPath = (otherCat)<-[:ABOUT]-(otherWiki)<-[:HAS_ENTITY]-(other)
+RETURN other.title, other.uri,
+       [(other)-[:HAS_ENTITY]->()-[:ABOUT]->(entity) | entity.name] AS otherCategories,
+       collect([node in nodes(path) | node.name]) AS pathToOther;
+----
