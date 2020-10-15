@@ -251,11 +251,11 @@ We're now going to add a custom ontology of footbal rivalries.
 
 [source, cypher]
 ----
-CALL n10s.nsprefixes.add('owl','http://www.w3.org/2002/07/owl#');
-CALL n10s.nsprefixes.add('rdfs','http://www.w3.org/2000/01/rdf-schema#');
-CALL n10s.mapping.add("http://www.w3.org/2000/01/rdf-schema#subClassOf","SUB_CAT_OF");
-CALL n10s.mapping.add("http://www.w3.org/2000/01/rdf-schema#label","name");
-CALL n10s.mapping.add("http://www.w3.org/2002/07/owl#Class","Category");
+ CALL n10s.nsprefixes.add('skos','http://www.w3.org/2004/02/skos/core#');
+ CALL n10s.nsprefixes.add('rdfs','http://www.w3.org/2000/01/rdf-schema#');
+ CALL n10s.mapping.add("http://www.w3.org/2004/02/skos/core#broader","PART_OF");
+ CALL n10s.mapping.add("http://www.w3.org/2000/01/rdf-schema#label","name");
+ CALL n10s.mapping.add("http://www.w3.org/2004/02/skos/core#Concept","Concept");  
 ----
 
 [source, cypher]
