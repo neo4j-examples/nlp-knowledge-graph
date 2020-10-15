@@ -111,6 +111,8 @@ CREATE CONSTRAINT on (a:Article)
 ASSERT a.uri is UNIQUE;
 ----
 
+Import this static feed for predictable results: https://raw.githubusercontent.com/jbarrasa/nlp-knowledge-graph/master/import/guardian.football.rss.xml
+
 [source, cypher]
 ----
 CALL apoc.periodic.iterate(
