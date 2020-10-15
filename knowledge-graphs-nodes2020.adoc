@@ -132,6 +132,15 @@ YIELD batches, total, timeTaken, committedOperations
 RETURN batches, total, timeTaken, committedOperations;
 ----
 
+== Removing redundant structure
+
+[source, cypher]
+----
+MATCH (a:Article)-[:HAS_ENTITY]->()-[:ABOUT]->(category)-[:PART_OF*]->(parent),
+      (a)-[parentEntity:HAS_ENTITY]->()-[:ABOUT]->(parent)
+DELETE parentEntity;
+----
+
 == Querying articles
 
 [source,cypher]
@@ -145,8 +154,7 @@ ORDER BY a.datetime DESC;
 ----
 MATCH (n:Article)
 RETURN n.uri, n.title,
-       [(n)-[:IN_CATEGORY]->(c) | c.name] AS categories,
-       [(n)-[:HAS_ENTITY]->(e) | n10s.rdf.getIRILocalName(e.uri)] AS entities;
+       [(n)-[:IN_CATEGORY]->(c) | c.name] AS categories;
 ----
 
 == Entity extraction with APOC NLP
@@ -192,6 +200,16 @@ CALL apoc.periodic.iterate(
   {batchMode: "BATCH_SINGLE", batchSize: 10, params: {key: $key}});
 ----
 
+== Querying the Knowlege Graph - Basic Search
+
+[source,cypher]
+----
+MATCH (n:Article)
+RETURN n.uri, n.title,
+       [(n)-[:IN_CATEGORY]->(c) | c.name] AS categories,
+       [(n)-[:HAS_ENTITY]->(e) | apoc.text.urldecode(n10s.rdf.getIRILocalName(e.uri))] AS entities;
+----
+
 == Querying the Knowledge Graph - Semantic Search
 
 We can write a query that starts from a top level category and finds all the articles attached to the underlying taxonomy.
@@ -209,7 +227,7 @@ YIELD node
 MATCH (node)<-[:HAS_ENTITY]-(article)
 RETURN article.uri AS uri, article.title AS title, article.datetime AS date,
        collect(n10s.rdf.getIRILocalName(node.uri))  as explicitTopics
-ORDER BY date DESC
+ORDER BY date DESC;
 ----
 
 == Querying the Knowledge Graph - Similar articles
